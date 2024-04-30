@@ -9,12 +9,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.util.List;
@@ -24,10 +28,16 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 
+
 // We have annotated the test class with the @SpringBootTest annotation together with the webEnvironment config,
 // so that the test will run by starting the entire application on a random available port.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+
+@AutoConfigureMockMvc
 class CustomerControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
 
     @LocalServerPort  // annotation is used in integration tests for Spring Boot applications to inject the port number that the embedded web server is running on into the test class.
     private Integer port;
@@ -244,5 +254,44 @@ class CustomerControllerTest {
                 .then()
                 .statusCode(HttpStatus.NOT_FOUND.value())
                 .body(equalTo(nullValue()));
+    }
+    // Test-driven development (TDD) is a software development approach where tests are written before the actual implementation code
+
+//    Write Test: Initially, you write a test that specifies a small piece of functionality required by the system. This test should fail because the functionality doesn't exist yet.
+
+//    Run Test: Run all tests, including the new one. Since the new test is expected to fail, this step confirms that it fails for the right reason.
+
+//    Write Code: Implement the functionality required to make the test pass. Write only the code that's necessary to pass the test.
+
+//    Run Tests: Run all tests again. If the new test and all existing tests pass, you can be confident that the new functionality and existing code work correctly together.
+
+//    Refactor Code: Once all tests pass, you can refactor the code to improve its design without changing its behavior. After each refactoring step, rerun the tests to ensure that everything still works as expected.
+
+//    Repeat: Repeat the process for the next piece of functionality, starting with writing a new test.
+
+
+    @Test
+    public void testAddCustomer() throws Exception {
+        String customerJson = "{\"name\":\"Joe Goldberg\",\"email\":\"gold@yopmail.com\"}";
+        mockMvc.perform(MockMvcRequestBuilders.post("/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(customerJson))
+                .andExpect(MockMvcResultMatchers.status().isCreated());
+    }
+
+
+    @Test
+    public void testUpdateCustomer() throws Exception {
+        String customerJson = "{\"name\":\"Daya123\",\"email\":\"daya123@yopmail.com\"}";
+        mockMvc.perform(MockMvcRequestBuilders.put("/customers/39")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(customerJson))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testDeleteCustomer() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.delete("/customers/31"))
+                .andExpect(MockMvcResultMatchers.status().isNoContent());
     }
 }
