@@ -7,9 +7,7 @@ import SpringTestContainer.demo.service.customerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -20,6 +18,14 @@ public class CustomerController {
 
     @Autowired
     customerService customerService;
+
+
+
+    @PostMapping("/customers")
+    public ResponseEntity<Customer> addCustomer(@RequestBody Customer customer) {
+        Customer savedCustomer = customerService.addCustomer(customer);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedCustomer);
+    }
 
     @GetMapping("/customers")
     List<Customer> getAll() {
@@ -35,5 +41,22 @@ public class CustomerController {
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
+    }
+
+
+    @PutMapping("/customers/{id}")
+    public ResponseEntity<Customer> updateCustomer(@PathVariable Long id, @RequestBody Customer customer) {
+        Customer updatedCustomer = customerService.updateCustomer(id, customer);
+        if (updatedCustomer != null) {
+            return ResponseEntity.ok(updatedCustomer);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+    }
+
+    @DeleteMapping("/customers/{id}")
+    public ResponseEntity<Void> deleteCustomer(@PathVariable Long id) {
+        customerService.deleteCustomer(id);
+        return ResponseEntity.noContent().build();
     }
 }

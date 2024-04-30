@@ -20,8 +20,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 
@@ -73,7 +72,7 @@ class CustomerControllerTest {
 
     @Test //@Test annotation is used in JUnit to mark a method as a test method.
     void shouldGetAllCustomers() {
-        // Given: a list of customers to save to the database
+        // Given a list of customers to save to the database
         List<Customer> customers = List.of(
                 new Customer(null, "Daya", "daya@yopmail.com"),
                 new Customer(null, "Sanvi", "sanvi@yopmail.com")
@@ -157,5 +156,93 @@ class CustomerControllerTest {
                 .then()
                 // Assert that the response status code is 404 (Not Found)
                 .statusCode(HttpStatus.NOT_FOUND.value());
+    }
+
+
+    @Test
+    void shouldAddCustomer() {
+        Customer customer = new Customer(null, "JOE GOLDBERG", "joe@example.com");
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(customer)
+                .when()
+                .post("/customers")
+                .then()
+                .statusCode(HttpStatus.CREATED.value())
+                .contentType(ContentType.JSON)
+                .body("name", equalTo(customer.getName()))
+                .body("email", equalTo(customer.getEmail()));
+    }
+
+
+    @Test
+    void shouldUpdateCustomer() {
+        // Add a customer to the database
+        Customer savedCustomer = customerRepository.save(new Customer(null, "Joe Goldberg", "joe@example.com"));
+
+        // Create an updated customer object
+        Customer updatedCustomer = new Customer(savedCustomer.getId(), "Joe Goldberg\"", "joe@example.com");
+
+        // Send a PUT request to update the customer
+        given()
+                .contentType(ContentType.JSON)
+                .body(updatedCustomer)
+                .when()
+                .put("/customers/{id}", savedCustomer.getId())
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .contentType(ContentType.JSON)
+                .body("id", equalTo(savedCustomer.getId().intValue())) // Check if the ID remains the same
+                .body("name", equalTo(updatedCustomer.getName())) // Check if the name is updated
+                .body("email", equalTo(updatedCustomer.getEmail())); // Check if the email is updated
+    }
+
+    @Test
+    void shouldReturnNotFoundForNonExistentCustomerUpdate() {
+        // Create an updated customer object for a non-existent customer
+        Customer updatedCustomer = new Customer(1000L, "Joe Goldberg", "joe@example.com");
+
+        // Send a PUT request to update the non-existent customer
+        given()
+                .contentType(ContentType.JSON)
+                .body(updatedCustomer)
+                .when()
+                .put("/customers/{id}", updatedCustomer.getId())
+                .then()
+                .statusCode(HttpStatus.NOT_FOUND.value()); // Expecting a 404 status code
+    }
+
+
+    @Test
+    void shouldDeleteCustomer() {
+        // Given a customer to be deleted
+        Customer customer = new Customer(null, "John", "john@example.com");
+        Long customerId = given()
+                .contentType(ContentType.JSON)
+                .body(customer)
+                .post("/customers")
+                .then()
+                .statusCode(HttpStatus.CREATED.value())
+                .extract()
+                .jsonPath()
+                .getLong("id");
+
+        // When: sending a DELETE request to delete the customer
+        given()
+                .pathParam("id", customerId)
+                .when()
+                .delete("/customers/{id}")
+                .then()
+                .statusCode(HttpStatus.NO_CONTENT.value());
+
+        // Then: verifying that the customer has been deleted
+        given()
+                .pathParam("id", customerId)
+                .when()
+                .get("/customers/{id}")
+                .then()
+                .statusCode(HttpStatus.NOT_FOUND.value())
+                .body(equalTo(nullValue()));
     }
 }
